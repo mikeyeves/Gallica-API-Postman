@@ -1,0 +1,1524 @@
+{
+  "info": {
+    "_postman_id": "8e9c36c1-94da-4569-a1e9-75fcc67fb68c",
+    "name": "Gallica & BnF APIs (France)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Bibliothèque nationale de France: **Gallica** digital library (SRU search, Document API, IIIF) and the **BnF catalogue** SRU. No key. Responses are XML except IIIF (JSON/images).\n\nDocs: https://api.bnf.fr/fr/api-gallica-de-recherche · https://api.bnf.fr/fr/api-document-de-gallica · https://api.bnf.fr/fr/api-iiif-de-recuperation-des-images-de-gallica · https://api.bnf.fr/fr/api-sru-catalogue-general\n\nPlease be polite: Gallica uses Cloudflare and blocks aggressive or undocumented traffic."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.upsert({key:'User-Agent',value:'GenealogyPostman/1.0 (Postman)'});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "★ Gallica search (SRU)",
+      "id": "86a19124-e723-4a3f-9bc3-117f97647021",
+      "item": [
+        {
+          "name": "Search (all Gallica)",
+          "id": "92961fd9-900e-46b3-84d1-595655f522dc",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(gallica all \"{{query}}\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(gallica all \"{{query}}\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": "Searches metadata and OCR text of 10M+ documents: books, newspapers, maps, images, manuscripts. Results are Dublin Core XML; the Visualizer shows a table."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "★ Full text (OCR) search",
+          "id": "60f97ea8-8db8-4591-a81a-ff584268cf9a",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(text all \"{{query}}\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(text all \"{{query}}\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": "OCR text only. Finds a name mentioned anywhere inside newspaper pages or books."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "★ Newspapers & periodicals only",
+          "id": "3ea51af1-1da5-4024-880e-f4f183a123e5",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(gallica all \"{{query}}\" and dc.type all \"fascicule\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(gallica all \"{{query}}\" and dc.type all \"fascicule\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": "dc.type \"fascicule\" means newspaper and periodical issues."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "★ Date range (1890–1920)",
+          "id": "0efbc251-c70f-4526-9b2d-d91707fe9b13",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(gallica all \"{{query}}\" and dc.date >= \"1890\" and dc.date <= \"1920\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(gallica all \"{{query}}\" and dc.date >= \"1890\" and dc.date <= \"1920\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "★ Exact phrase",
+          "id": "e0e9f9fa-55a8-4693-a9d5-3198038bfcd5",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(gallica adj \"{{phrase}}\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(gallica adj \"{{phrase}}\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": "adj = words adjacent (phrase)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "★ Maps of a place",
+          "id": "7d078cf8-b821-44b0-9de6-39dcdbb8be6b",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(gallica all \"{{place}}\" and dc.type all \"carte\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(gallica all \"{{place}}\" and dc.type all \"carte\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": "Historic maps (cartes)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Images / photos",
+          "id": "74389165-943d-4355-a42d-3a7ec0039e8c",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(gallica all \"{{place}}\" and dc.type all \"image\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(gallica all \"{{place}}\" and dc.type all \"image\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Manuscripts",
+          "id": "81fa907d-2d11-422a-947b-894997329010",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(gallica all \"{{query}}\" and dc.type all \"manuscrit\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(gallica all \"{{query}}\" and dc.type all \"manuscrit\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "By author (dc.creator)",
+          "id": "874c6624-fdc7-4a6b-91cb-f7ad7232e007",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(dc.creator all \"{{query}}\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(dc.creator all \"{{query}}\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "By title (dc.title)",
+          "id": "20760d9c-6a45-4887-9b2b-92e1e2537418",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(dc.title all \"{{title}}\")&maximumRecords=20&startRecord=1",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(dc.title all \"{{title}}\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search without grouping (every issue)",
+          "id": "6059403e-c20d-4344-a6bc-627ce7cd31a6",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/SRU?operation=searchRetrieve&version=1.2&query=(gallica all \"{{query}}\")&maximumRecords=20&startRecord=1&collapsing=false",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "(gallica all \"{{query}}\")",
+                  "disabled": false,
+                  "description": "CQL query"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": "max 50"
+                },
+                {
+                  "key": "startRecord",
+                  "value": "1",
+                  "disabled": false,
+                  "description": "1-based offset"
+                },
+                {
+                  "key": "collapsing",
+                  "value": "false",
+                  "disabled": false,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "collapsing=false returns each periodical issue separately instead of grouping them by title."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Gallica document services",
+      "id": "51ccd295-9d9d-44a0-8289-920055b3d5d9",
+      "item": [
+        {
+          "name": "Document metadata (OAIRecord)",
+          "id": "2a387d4b-5e6f-4273-b383-4019c1e3b364",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/services/OAIRecord?ark={{ark_id}}",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "services",
+                "OAIRecord"
+              ],
+              "query": [
+                {
+                  "key": "ark",
+                  "value": "{{ark_id}}",
+                  "disabled": false,
+                  "description": "Document id, e.g. bpt6k5728837h"
+                }
+              ]
+            },
+            "description": "Dublin Core and Gallica metadata for one document."
+          },
+          "response": []
+        },
+        {
+          "name": "Page list (Pagination)",
+          "id": "3c820d48-5ef6-4195-8f13-b83bec30f149",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/services/Pagination?ark={{ark_id}}",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "services",
+                "Pagination"
+              ],
+              "query": [
+                {
+                  "key": "ark",
+                  "value": "{{ark_id}}",
+                  "disabled": false,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Page numbers and labels; needed for IIIF page fN."
+          },
+          "response": []
+        },
+        {
+          "name": "★ Find a word inside a document (ContentSearch)",
+          "id": "1ae8acb0-dc99-4a6f-93c9-ffc8f03066b9",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/services/ContentSearch?ark={{ark_id}}&query={{query}}",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "services",
+                "ContentSearch"
+              ],
+              "query": [
+                {
+                  "key": "ark",
+                  "value": "{{ark_id}}",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "{{query}}",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true,
+                  "description": "limit to page N"
+                }
+              ]
+            },
+            "description": "Shows which pages contain the word, with text snippets. Useful for locating a surname inside a 500-page volume."
+          },
+          "response": []
+        },
+        {
+          "name": "Table of contents (Toc)",
+          "id": "85a053b2-c9b5-455c-aad3-b429878c5cb7",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/services/Toc?ark={{ark_id}}",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "services",
+                "Toc"
+              ],
+              "query": [
+                {
+                  "key": "ark",
+                  "value": "{{ark_id}}",
+                  "disabled": false,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Only for documents that have a TOC (otherwise 400)."
+          },
+          "response": []
+        },
+        {
+          "name": "Plain OCR text (texteBrut)",
+          "id": "2279580b-b23a-4f50-bbc9-b7b0976eae05",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/html"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/ark:/12148/{{ark_id}}.texteBrut",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "ark:",
+                "12148",
+                "{{ark_id}}.texteBrut"
+              ],
+              "query": []
+            },
+            "description": "Full OCR text as an HTML page."
+          },
+          "response": []
+        },
+        {
+          "name": "★ Periodical: available years (Issues)",
+          "id": "d6378889-3e28-4177-8fc1-d21446675963",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/services/Issues?ark=ark:/12148/{{periodical_ark}}/date",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "services",
+                "Issues"
+              ],
+              "query": [
+                {
+                  "key": "ark",
+                  "value": "ark:/12148/{{periodical_ark}}/date",
+                  "disabled": false,
+                  "description": "Periodical id (cb…) + /date"
+                }
+              ]
+            },
+            "description": "Example: Le Figaro (cb34355551z), 1854 onward."
+          },
+          "response": []
+        },
+        {
+          "name": "★ Periodical: issues in a year",
+          "id": "0aacf567-fad7-409d-977e-9ddfcb988e3b",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/services/Issues?ark=ark:/12148/{{periodical_ark}}/date&date={{year}}",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "services",
+                "Issues"
+              ],
+              "query": [
+                {
+                  "key": "ark",
+                  "value": "ark:/12148/{{periodical_ark}}/date",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "date",
+                  "value": "{{year}}",
+                  "disabled": false,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Lists each issue with its document id (ark)."
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Gallica IIIF images",
+      "id": "9d7d103d-2b71-45af-816a-575777594927",
+      "item": [
+        {
+          "name": "IIIF manifest",
+          "id": "112cc191-8350-466a-9b93-bc4e24c1cf37",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/iiif/ark:/12148/{{ark_id}}/manifest.json",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "iiif",
+                "ark:",
+                "12148",
+                "{{ark_id}}",
+                "manifest.json"
+              ],
+              "query": []
+            },
+            "description": "IIIF Presentation 2.0 manifest; works in Mirador and Universal Viewer."
+          },
+          "response": []
+        },
+        {
+          "name": "IIIF image info (page)",
+          "id": "ebdc6e93-6138-4f61-8df7-f7efb9107c23",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/iiif/ark:/12148/{{ark_id}}/{{page}}/info.json",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "iiif",
+                "ark:",
+                "12148",
+                "{{ark_id}}",
+                "{{page}}",
+                "info.json"
+              ],
+              "query": []
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Page image — full size",
+          "id": "007c2a38-fa81-459d-b612-745990605fbb",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "image/jpeg"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/iiif/ark:/12148/{{ark_id}}/{{page}}/full/full/0/native.jpg",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "iiif",
+                "ark:",
+                "12148",
+                "{{ark_id}}",
+                "{{page}}",
+                "full",
+                "full",
+                "0",
+                "native.jpg"
+              ],
+              "query": []
+            },
+            "description": "page = f1, f2 …"
+          },
+          "response": []
+        },
+        {
+          "name": "Page image — 800px wide",
+          "id": "3cbadbf7-8c63-4c85-ba6d-67b6f6e50593",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "image/jpeg"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/iiif/ark:/12148/{{ark_id}}/{{page}}/full/800,/0/native.jpg",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "iiif",
+                "ark:",
+                "12148",
+                "{{ark_id}}",
+                "{{page}}",
+                "full",
+                "800,",
+                "0",
+                "native.jpg"
+              ],
+              "query": []
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Page image — crop region (x,y,w,h)",
+          "id": "0d6ea647-5ce1-4052-ba7a-9a863363da3a",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "image/jpeg"
+              }
+            ],
+            "url": {
+              "raw": "{{gallica}}/iiif/ark:/12148/{{ark_id}}/{{page}}/1000,1000,1500,800/full/0/native.jpg",
+              "host": [
+                "{{gallica}}"
+              ],
+              "path": [
+                "iiif",
+                "ark:",
+                "12148",
+                "{{ark_id}}",
+                "{{page}}",
+                "1000,1000,1500,800",
+                "full",
+                "0",
+                "native.jpg"
+              ],
+              "query": []
+            },
+            "description": "Crop a column or entry."
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "BnF catalogue (SRU)",
+      "id": "ac96d325-b26b-451b-a0d9-3e334467fbf4",
+      "item": [
+        {
+          "name": "Catalogue search (any field)",
+          "id": "da33853c-c284-4a3f-bdb1-6fe039527151",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{bnf_cat}}/api/SRU?version=1.2&operation=searchRetrieve&query=bib.anywhere all \"{{query}}\"&recordSchema=dublincore&maximumRecords=20",
+              "host": [
+                "{{bnf_cat}}"
+              ],
+              "path": [
+                "api",
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "bib.anywhere all \"{{query}}\"",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "recordSchema",
+                  "value": "dublincore",
+                  "disabled": false,
+                  "description": "dublincore | unimarcxchange | intermarcxchange"
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "BnF general catalogue (print holdings, not only digitized)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "★ Catalogue: genealogy subject",
+          "id": "9febf8d5-e664-42cf-ac9d-7b8c6cab58ce",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{bnf_cat}}/api/SRU?version=1.2&operation=searchRetrieve&query=bib.subject all \"généalogie\" and bib.subject all \"{{country}}\"&recordSchema=dublincore&maximumRecords=20",
+              "host": [
+                "{{bnf_cat}}"
+              ],
+              "path": [
+                "api",
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "bib.subject all \"généalogie\" and bib.subject all \"{{country}}\"",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "recordSchema",
+                  "value": "dublincore",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Example: genealogy and Hongrie returned 140 records."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "const x=pm.response.text();",
+                  "const total=(x.match(/numberOfRecords>(\\d+)/)||[])[1]||'0';",
+                  "const get=(r,t)=>{const m=r.match(new RegExp('<dc:'+t+'[^>]*>([^<]*)<','g'))||[];return m.map(s=>s.replace(/<[^>]+>/g,'').replace(/<$/,''));};",
+                  "const recs=x.split(/<srw:record>|<record>/).slice(1);",
+                  "const rows=recs.map(r=>{const ids=get(r,'identifier');const link=ids.find(i=>/gallica\\.bnf\\.fr\\/ark|catalogue\\.bnf\\.fr\\/ark/.test(i))||ids[0]||'';const ark=(link.match(/ark:\\/12148\\/[a-z0-9]+/)||[''])[0];return [`<a href=\"${link}\">${(get(r,'title')[0]||'').slice(0,110)}</a>`,get(r,'date')[0]||'',get(r,'type').slice(0,2).join('; '),(get(r,'creator')[0]||'').slice(0,50),ark&&/gallica/.test(link)?`<img src=\"https://gallica.bnf.fr/${ark}/thumbnail\" height=\"50\">`:''];});",
+                  "pm.visualizer.set(`<style>table{border-collapse:collapse;font:13px sans-serif}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top}th{background:#eee}</style><p><b>{{total}}</b> records</p><table><tr><th>Title</th><th>Date</th><th>Type</th><th>Creator</th><th></th></tr>{{#each rows}}<tr>{{#each this}}<td>{{{this}}}</td>{{/each}}</tr>{{/each}}</table>`,{rows,total});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Authority search (persons, families)",
+          "id": "5ce96331-8c59-462f-af25-8160e42edce6",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{bnf_cat}}/api/SRU?version=1.2&operation=searchRetrieve&query=aut.anywhere all \"{{query}}\"&recordSchema=unimarcxchange&maximumRecords=20",
+              "host": [
+                "{{bnf_cat}}"
+              ],
+              "path": [
+                "api",
+                "SRU"
+              ],
+              "query": [
+                {
+                  "key": "version",
+                  "value": "1.2",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "operation",
+                  "value": "searchRetrieve",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "query",
+                  "value": "aut.anywhere all \"{{query}}\"",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "recordSchema",
+                  "value": "unimarcxchange",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "maximumRecords",
+                  "value": "20",
+                  "disabled": false,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "BnF name authorities."
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    }
+  ],
+  "variable": [
+    {
+      "key": "gallica",
+      "value": "https://gallica.bnf.fr",
+      "type": "string"
+    },
+    {
+      "key": "bnf_cat",
+      "value": "https://catalogue.bnf.fr",
+      "type": "string"
+    },
+    {
+      "key": "query",
+      "value": "Bukovsky",
+      "type": "string"
+    },
+    {
+      "key": "phrase",
+      "value": "Banat de Temesvar",
+      "type": "string"
+    },
+    {
+      "key": "place",
+      "value": "Banat",
+      "type": "string"
+    },
+    {
+      "key": "title",
+      "value": "Hongrie",
+      "type": "string"
+    },
+    {
+      "key": "country",
+      "value": "Hongrie",
+      "type": "string"
+    },
+    {
+      "key": "ark_id",
+      "value": "bpt6k5728837h",
+      "type": "string"
+    },
+    {
+      "key": "page",
+      "value": "f1",
+      "type": "string"
+    },
+    {
+      "key": "periodical_ark",
+      "value": "cb34355551z",
+      "type": "string"
+    },
+    {
+      "key": "year",
+      "value": "1905",
+      "type": "string"
+    }
+  ]
+}
